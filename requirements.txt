@@ -6,4 +6,4 @@ python-dotenv
 tzdata
 psutil
 deep-translator
-cloudscraper
+curl_cffi

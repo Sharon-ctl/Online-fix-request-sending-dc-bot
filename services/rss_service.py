@@ -1,6 +1,6 @@
 import asyncio
 import feedparser
-import cloudscraper
+from curl_cffi import requests
 from typing import List, Optional
 from utils.constants import RSS_URL, HTTP_TIMEOUT, HTTP_RETRIES
 from utils.logger import log
@@ -11,25 +11,16 @@ from services.database_service import DatabaseService
 class RSSService:
     def __init__(self, db_service: DatabaseService):
         self.db_service = db_service
-        # Use cloudscraper to bypass Cloudflare anti-bot checks (JS challenges and TLS fingerprints)
-        self.scraper = cloudscraper.create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'windows',
-                'desktop': True
-            }
-        )
 
     async def initialize(self):
-        pass  # cloudscraper handles connections internally
+        pass  # curl_cffi handles connections internally
 
     async def close(self):
-        if self.scraper:
-            self.scraper.close()
+        pass
 
     def _sync_fetch(self, headers: dict):
-        # Synchronous fetch method to be run in a thread
-        response = self.scraper.get(RSS_URL, headers=headers, timeout=HTTP_TIMEOUT)
+        # Synchronous fetch method using curl_cffi to impersonate Chrome
+        response = requests.get(RSS_URL, headers=headers, impersonate="chrome110", timeout=HTTP_TIMEOUT)
         return response.status_code, response.headers, response.text
 
     async def fetch_feed(self) -> List[ReleaseData]:
@@ -47,7 +38,7 @@ class RSSService:
             try:
                 log.debug(f"Fetching RSS feed (Attempt {attempt + 1})")
                 
-                # Execute blocking cloudscraper in background thread
+                # Execute blocking curl_cffi in background thread
                 status, resp_headers, content = await asyncio.to_thread(self._sync_fetch, headers)
                 
                 if status == 304:
