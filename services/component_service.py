@@ -49,7 +49,7 @@ class ReleaseLayout(ui.LayoutView):
 
 class PaginatedReleaseView(ui.LayoutView):
     def __init__(self, title: str, results: list[ReleaseData], translation_service, query: str = ""):
-        super().__init__(timeout=300)
+        super().__init__(timeout=600) # 10 minute timeout to clear memory
         self.view_title = title
         self.results = results
         self.translation_service = translation_service
@@ -57,23 +57,35 @@ class PaginatedReleaseView(ui.LayoutView):
         self.current_page = 0
         self.per_page = 10
         self.max_pages = max(1, (len(results) - 1) // self.per_page + 1)
-        self.translated_cache = {} # Caches translated titles by page index
+        self.message = None
         
+    async def on_timeout(self):
+        """Memory leak prevention: Clean up large result arrays when the view expires."""
+        self.results.clear()
+        
+        # Disable all buttons
+        for child in self.children:
+            if hasattr(child, 'children'):
+                for item in child.children:
+                    item.disabled = True
+                    
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:
+                pass
+
+    def _clean_title(self, title: str) -> str:
+        """Instantly localizes the title without making expensive/slow API calls to Google Translate."""
+        import re
+        cleaned = re.sub(r'(?i)по сети.*', '', title)
+        cleaned = re.sub(r'(?i)по интернету.*', '', cleaned)
+        return cleaned.strip()
+
     async def build_page(self) -> ui.Container:
         start_idx = self.current_page * self.per_page
         end_idx = start_idx + self.per_page
         page_results = self.results[start_idx:end_idx]
-        
-        # Use cached translations if we've already visited this page
-        if self.current_page in self.translated_cache:
-            translated_titles = self.translated_cache[self.current_page]
-        else:
-            import asyncio
-            translated_titles = await asyncio.gather(
-                *(self.translation_service.translate_text(res.title) for res in page_results),
-                return_exceptions=True
-            )
-            self.translated_cache[self.current_page] = translated_titles
         
         header = f"### {self.view_title}"
         if self.query:
@@ -88,8 +100,9 @@ class PaginatedReleaseView(ui.LayoutView):
             content += "No results found."
         else:
             for idx, res in enumerate(page_results):
-                title = translated_titles[idx] if not isinstance(translated_titles[idx], Exception) else res.title
-                content += f"**{start_idx + idx + 1}.** [{title}]({res.link})\n"
+                # Use instant regex cleaning instead of slow blocking API translation
+                clean_name = self._clean_title(res.title)
+                content += f"**{start_idx + idx + 1}.** [{clean_name}]({res.link})\n"
                 
         thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
         
@@ -105,7 +118,6 @@ class PaginatedReleaseView(ui.LayoutView):
             
             prev_btn = ui.Button(label="<", style=discord.ButtonStyle.secondary, disabled=self.current_page == 0)
             async def prev_callback(interaction: discord.Interaction):
-                await interaction.response.defer()
                 self.current_page -= 1
                 await self.update_message(interaction)
             prev_btn.callback = prev_callback
@@ -113,7 +125,6 @@ class PaginatedReleaseView(ui.LayoutView):
             
             next_btn = ui.Button(label=">", style=discord.ButtonStyle.secondary, disabled=self.current_page == self.max_pages - 1)
             async def next_callback(interaction: discord.Interaction):
-                await interaction.response.defer()
                 self.current_page += 1
                 await self.update_message(interaction)
             next_btn.callback = next_callback
@@ -128,13 +139,14 @@ class PaginatedReleaseView(ui.LayoutView):
         self.clear_items()
         container = await self.build_page()
         self.add_item(container)
-        await interaction.message.edit(view=self)
+        await interaction.response.edit_message(view=self)
 
     async def start(self, messageable):
         self.clear_items()
         container = await self.build_page()
         self.add_item(container)
-        return await messageable.send(view=self)
+        self.message = await messageable.send(view=self)
+        return self.message
 
 class ComponentService:
     @staticmethod
