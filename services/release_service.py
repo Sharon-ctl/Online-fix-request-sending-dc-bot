@@ -33,6 +33,10 @@ class ReleaseService:
 
             # Reverse to post oldest first (if feed is newest first)
             new_releases.reverse()
+            
+            # Anti-Spam Queue: Only process ONE new release per fetch cycle. 
+            # The remaining releases will naturally be picked up in subsequent cycles.
+            new_releases = new_releases[:1]
 
             for release in new_releases:
                 # Translate Russian strings to English automatically
