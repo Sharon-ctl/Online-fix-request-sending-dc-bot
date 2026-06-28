@@ -4,11 +4,11 @@ A production-grade Python Discord bot that monitors the `https://online-fix.me/r
 
 ## Features
 - **Modern UI**: Uses Discord Components V2 (Embeds & Buttons) with no emojis.
-- **Robust Parsing**: Extracts relevant details directly from the HTML description of the RSS feed.
+- **Robust Parsing & Scraping**: Extracts relevant details directly from the HTML description of the RSS feed and DLE search pages.
+- **Cloudflare Bypass**: Utilizes `curl_cffi` for native Google Chrome TLS impersonation to completely bypass Cloudflare bot protections.
+- **Auto-Translation**: Automatically translates Russian titles, categories, and tags to English via Google Translate.
 - **Data Safety**: Automatic `.corrupt` database recovery for JSON files.
 - **Multi-Guild**: Fetches RSS once and distributes to all configured guilds.
-- **Configurable**: Define the polling interval in minutes via environment variables.
-- **Graceful Shutdown**: Properly closes network sessions and scheduler upon exit.
 
 ## Setup Requirements
 - Python 3.13+
@@ -34,24 +34,18 @@ A production-grade Python Discord bot that monitors the `https://online-fix.me/r
    python launcher.py
    ```
 
-## Installation (Docker)
-
-Using `docker-compose` is highly recommended.
-
-1. Create and populate `.env` as shown above.
-2. Build and start the container:
-   ```bash
-   docker-compose up -d --build
-   ```
-
 ## Commands
 
 ### User Commands
-- `!channel set <#channel>`: Configure the channel for the bot to post releases. Requires **Manage Server** permission.
+- `!search <query>`: Search the Online-Fix database for a specific game. Automatically translates and renders the top 10 results.
 - `!help`: Display help information.
 
+### Admin Commands
+- `!channel set <#channel>`: Configure the channel for the bot to post automated releases. Requires **Manage Server** permission.
+
 ### Owner Commands
-- `!test`: Run an end-to-end test (fetches RSS, grabs newest release, sends a preview without altering the DB).
+- `!ping`: Check the WebSocket latency of the bot.
+- `!test`: Run an end-to-end test (fetches RSS, grabs newest release, translates it, and sends a preview).
 - `!fetch`: Instantly force an RSS check and post any new releases.
 - `!health`: Show bot uptime, memory usage, and scheduler status.
 - `!reload`: Reload database configuration.
