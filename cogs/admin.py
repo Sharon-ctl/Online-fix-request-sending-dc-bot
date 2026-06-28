@@ -102,9 +102,25 @@ class AdminCog(commands.Cog):
         except Exception as e:
             await ctx.send(view=ComponentService.create_error_message("Reload Failed", str(e)))
 
+    @commands.command(name="ping")
+    @is_owner()
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def ping_cmd(self, ctx: commands.Context):
+        """Check the bot's WebSocket latency (Owner only)."""
+        latency = round(self.bot.latency * 1000)
+        view = ui.LayoutView(timeout=None)
+        thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
+        content = f"### Pong! 🏓\n**WebSocket Latency:** {latency}ms"
+        
+        main_section = ui.Section(ui.TextDisplay(content), accessory=ui.Thumbnail(media=thumb_url))
+        container = ui.Container(main_section)
+        view.add_item(container)
+        await ctx.send(view=view)
+
     @test_cmd.error
     @fetch_cmd.error
     @health_cmd.error
+    @ping_cmd.error
     @reload_cmd.error
     async def owner_command_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CheckFailure):
