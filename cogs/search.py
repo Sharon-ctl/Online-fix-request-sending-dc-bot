@@ -18,12 +18,11 @@ class SearchCog(commands.Cog):
         msg = await ctx.send(view=ComponentService.create_info_message("Searching", f"Looking up `{query}`..."))
         
         try:
-            results = await self.rss_service.search_games(query, limit=10)
-            
-            view = discord.ui.LayoutView(timeout=None)
-            thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
+            results = await self.rss_service.search_games(query, limit=50)
             
             if not results:
+                view = discord.ui.LayoutView(timeout=None)
+                thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
                 content = f"### Search Results: `{query}`\n\nThat game isn't in our database yet!"
                 main_section = discord.ui.Section(
                     discord.ui.TextDisplay(content),
@@ -34,25 +33,9 @@ class SearchCog(commands.Cog):
                 await ctx.send(view=view)
                 return
                 
-            import asyncio
-            translated_titles = await asyncio.gather(
-                *(self.translation_service.translate_text(res.title) for res in results),
-                return_exceptions=True
-            )
-            
-            content = f"### Search Results: `{query}`\n\n"
-            for idx, res in enumerate(results):
-                title = translated_titles[idx] if not isinstance(translated_titles[idx], Exception) else res.title
-                content += f"**{idx+1}.** [{title}]({res.link})\n"
-                
-            main_section = discord.ui.Section(
-                discord.ui.TextDisplay(content),
-                accessory=discord.ui.Thumbnail(media=thumb_url)
-            )
-            view.add_item(discord.ui.Container(main_section))
-            
+            view = ComponentService.create_paginated_view("Search Results", results, self.translation_service, query)
             await msg.delete()
-            await ctx.send(view=view)
+            await view.start(ctx)
             
         except Exception as e:
             log.error(f"action=search_command_failed error={e}")

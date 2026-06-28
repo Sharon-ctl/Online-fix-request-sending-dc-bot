@@ -33,6 +33,102 @@ class RSSService:
         response = requests.post(url, data=data, impersonate="chrome110", timeout=HTTP_TIMEOUT)
         return response.status_code, response.text
 
+    def _sync_get_homepage(self):
+        response = requests.get("https://online-fix.me/", impersonate="chrome110", timeout=HTTP_TIMEOUT)
+        return response.status_code, response.text
+
+    async def get_recent_updates(self, limit: int = 50) -> List[ReleaseData]:
+        from bs4 import BeautifulSoup
+        from utils.parser import parse_html_article
+        
+        status, content = await asyncio.to_thread(self._sync_get_homepage)
+        if status >= 400:
+            raise RSSFetchError(f"HTTP Error {status} fetching homepage")
+            
+        soup = BeautifulSoup(content, 'html.parser')
+        articles = soup.find_all('div', class_='article')
+        if not articles:
+            articles = soup.find_all('article', class_='article')
+            
+        results = []
+        for article in articles[:limit]:
+            try:
+                res = parse_html_article(article)
+                if res:
+                    results.append(res)
+            except Exception as e:
+                log.warning(f"Failed to parse article on homepage: {e}")
+                
+        return results
+
+    def _sync_fetch_url(self, url: str):
+        response = requests.get(url, impersonate="chrome110", timeout=HTTP_TIMEOUT)
+        return response.status_code, response.text
+
+    async def get_genre(self, genre: str, limit: int = 50) -> List[ReleaseData]:
+        from bs4 import BeautifulSoup
+        from utils.parser import parse_html_article
+        
+        genre_clean = genre.lower().strip()
+        url = f"https://online-fix.me/games/{genre_clean}/"
+        status, content = await asyncio.to_thread(self._sync_fetch_url, url)
+        
+        if status >= 400:
+            # Fallback to standard search if category page doesn't exist
+            return await self.search_games(genre, limit)
+            
+        soup = BeautifulSoup(content, 'html.parser')
+        articles = soup.find_all('div', class_='article')
+        if not articles:
+            articles = soup.find_all('article', class_='article')
+            
+        results = []
+        for article in articles[:limit]:
+            try:
+                res = parse_html_article(article)
+                if res:
+                    results.append(res)
+            except Exception:
+                pass
+        return results
+
+    async def get_trending(self, limit: int = 20) -> List[ReleaseData]:
+        from bs4 import BeautifulSoup
+        from utils.parser import parse_html_article
+        
+        status, content = await asyncio.to_thread(self._sync_get_homepage)
+        if status >= 400:
+            return await self.get_recent_updates(limit)
+            
+        soup = BeautifulSoup(content, 'html.parser')
+        
+        # Try to find the popular games block first
+        trending_results = []
+        popular_blocks = soup.find_all('div', class_='top-news')
+        if not popular_blocks:
+            popular_blocks = soup.find_all('ul', class_='top-news')
+            
+        for block in popular_blocks:
+            articles = block.find_all('a')
+            for a in articles:
+                if 'href' in a.attrs and len(a.text.strip()) > 3:
+                    # Fake a ReleaseData for popular link
+                    trending_results.append(ReleaseData(
+                        title=a.text.strip(),
+                        link=a['href'],
+                        published="",
+                        release_date="",
+                        play_via="",
+                        modes="",
+                        categories=""
+                    ))
+                    
+        if trending_results:
+            return trending_results[:limit]
+            
+        # Fallback to recent updates if popular block isn't found
+        return await self.get_recent_updates(limit)
+
     async def search_games(self, query: str, limit: int = 5) -> List[ReleaseData]:
         from bs4 import BeautifulSoup
         from utils.parser import parse_html_article

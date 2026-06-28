@@ -3,12 +3,20 @@
 A production-grade Python Discord bot that monitors the `https://online-fix.me/rss.xml` feed and automatically posts newly released games into configured Discord channels.
 
 ## Features
-- **Modern UI**: Uses Discord Components V2 (Embeds & Buttons) with no emojis.
-- **Robust Parsing & Scraping**: Extracts relevant details directly from the HTML description of the RSS feed and DLE search pages.
-- **Cloudflare Bypass**: Utilizes `curl_cffi` for native Google Chrome TLS impersonation to completely bypass Cloudflare bot protections.
-- **Auto-Translation**: Automatically translates Russian titles, categories, and tags to English via Google Translate.
-- **Data Safety**: Automatic `.corrupt` database recovery for JSON files.
-- **Multi-Guild**: Fetches RSS once and distributes to all configured guilds.
+- **Auto-Translations**: Real-time Russian-to-English translation using `googletrans` API.
+- **Cloudflare Bypass**: Embedded `curl_cffi` to evade advanced Web Application Firewalls natively.
+- **Interactive UI**: Gorgeous layout built on native Discord Components V2 framework.
+- **Smart Pagination**: Lazily loads and translates pages for commands with massive outputs to optimize performance and prevent rate limiting.
+
+## Available Commands
+
+- `!ping` - Check the bot latency.
+- `!help` - Display the help menu.
+- `!set <#channel>` - (Admin Only) Set the notification channel.
+- `!search <query>` - Find specific games with smart pagination handling up to 50 results.
+- `!updates` - View the 50 most recent game updates released on the site.
+- `!trending` - Directly checks the hottest and most popular games being played right now.
+- `!genre [genre]` - Browse games by a specific category (e.g. `!genre shooter`, `!genre rpg`).
 
 ## Setup Requirements
 - Python 3.13+

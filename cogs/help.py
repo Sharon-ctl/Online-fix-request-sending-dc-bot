@@ -14,7 +14,7 @@ class CustomHelpCommand(commands.HelpCommand):
         view = ui.LayoutView(timeout=None)
         thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
         
-        content = "## Online-Fix Tracker Help\n*A bot that monitors the Online-Fix RSS feed and automatically posts newly released games.*\n\n"
+        content = "## Games!! Tracker Help\n*A Discord bot that monitors new co-op game releases, tracks trending games, and lets you browse genres, all automatically translated to English.*\n\n"
         
         for cog, cmds in mapping.items():
             filtered = await self.filter_commands(cmds, sort=True)
