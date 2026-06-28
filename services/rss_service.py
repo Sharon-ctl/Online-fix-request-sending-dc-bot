@@ -23,6 +23,41 @@ class RSSService:
         response = requests.get(RSS_URL, headers=headers, impersonate="chrome110", timeout=HTTP_TIMEOUT)
         return response.status_code, response.headers, response.text
 
+    def _sync_search(self, query: str):
+        url = "https://online-fix.me/index.php?do=search"
+        data = {
+            "do": "search",
+            "subaction": "search",
+            "story": query
+        }
+        response = requests.post(url, data=data, impersonate="chrome110", timeout=HTTP_TIMEOUT)
+        return response.status_code, response.text
+
+    async def search_game(self, query: str) -> Optional[ReleaseData]:
+        from bs4 import BeautifulSoup
+        from utils.parser import parse_html_article
+        
+        try:
+            log.debug(f"Searching for {query}")
+            status, content = await asyncio.to_thread(self._sync_search, query)
+            
+            if status >= 400:
+                raise RSSFetchError(f"HTTP Error {status} during search")
+                
+            soup = BeautifulSoup(content, 'html.parser')
+            articles = soup.find_all('div', class_='article')
+            if not articles:
+                articles = soup.find_all('article', class_='article')
+                
+            if not articles:
+                return None
+                
+            return parse_html_article(articles[0])
+            
+        except Exception as e:
+            log.warning(f"action=search_failed error={e} query={query}")
+            raise RSSFetchError(f"Failed to search for {query}: {e}")
+
     async def fetch_feed(self) -> List[ReleaseData]:
         state = self.db_service.get_state()
         headers = {

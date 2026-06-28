@@ -42,7 +42,7 @@ class OnlineFixBot(commands.Bot):
     async def setup_hook(self) -> None:
         """Called once when the bot starts up, before login."""
         log.info("action=setup_hook msg=Loading cogs")
-        cogs = ["cogs.admin", "cogs.help", "cogs.releases"]
+        cogs = ["cogs.admin", "cogs.help", "cogs.releases", "cogs.search"]
         for cog in cogs:
             try:
                 await self.load_extension(cog)

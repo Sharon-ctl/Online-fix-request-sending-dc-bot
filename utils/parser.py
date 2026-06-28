@@ -103,3 +103,65 @@ def parse_rss_entry(entry: Dict[str, Any]) -> ReleaseData:
         if isinstance(e, RSSParseError):
             raise
         raise RSSParseError(f"Failed to parse RSS entry: {e}")
+
+def parse_html_article(soup: BeautifulSoup) -> ReleaseData:
+    """Parses a single DLE HTML article block into a ReleaseData object."""
+    try:
+        # Extract link
+        link_tag = soup.find('a', class_='big-link')
+        if not link_tag:
+            link_tag = soup.find('a')
+        link = link_tag['href'] if link_tag and 'href' in link_tag.attrs else ""
+        guid = link
+        
+        # Extract title
+        title_tag = soup.find(lambda tag: tag.name in ['h2', 'h3'])
+        title = title_tag.text.strip() if title_tag else "Unknown Title"
+        
+        # Extract image
+        image_url = None
+        img_tag = soup.find('img')
+        if img_tag:
+            image_url = img_tag.get('data-src') or img_tag.get('src')
+            if image_url and image_url.startswith("/"):
+                image_url = "https://online-fix.me" + image_url
+                
+        # Extract published date from time tag
+        published = "Unknown Date"
+        time_tag = soup.find('time')
+        if time_tag and 'datetime' in time_tag.attrs:
+            published = time_tag['datetime']
+            
+        # The preview-text acts like the RSS description
+        preview = soup.find('div', class_='preview-text')
+        
+        release_date = None
+        play_via = None
+        modes = None
+        categories = None
+        
+        if preview:
+            release_date = _extract_detail(preview, ["Release date", "Релиз игры", "Дата выхода"])
+            play_via = _extract_detail(preview, ["Play via", "Игра через", "Способ игры"])
+            modes = _extract_detail(preview, ["Modes", "Жанр", "Режимы"])
+            categories = _extract_detail(preview, ["Categories", "Категории"])
+
+        if not guid:
+            raise RSSParseError("Article missing GUID/Link")
+
+        return ReleaseData(
+            guid=guid,
+            title=title,
+            link=link,
+            published=published,
+            image_url=image_url,
+            release_date=release_date,
+            play_via=play_via,
+            modes=modes,
+            categories=categories
+        )
+    except Exception as e:
+        if isinstance(e, RSSParseError):
+            raise
+        raise RSSParseError(f"Failed to parse HTML article: {e}")
+
