@@ -113,7 +113,7 @@ class AdminCog(commands.Cog):
         # We create a placeholder view to calculate accurate roundtrip API latency
         view = ui.LayoutView(timeout=None)
         content = f"### Latency Test\n**WebSocket:** {ws_latency}ms\n**API Response:** Calculating..."
-        main_section = ui.Section(ui.TextDisplay(content))
+        main_section = ui.Section(ui.TextDisplay(content), accessory=None)
         view.add_item(ui.Container(main_section))
         
         start_time = time.monotonic()
@@ -125,7 +125,7 @@ class AdminCog(commands.Cog):
         # Update view with accurate results
         updated_view = ui.LayoutView(timeout=None)
         updated_content = f"### Latency\n**WebSocket:** {ws_latency}ms\n**API Response:** {api_latency}ms"
-        updated_section = ui.Section(ui.TextDisplay(updated_content))
+        updated_section = ui.Section(ui.TextDisplay(updated_content), accessory=None)
         updated_view.add_item(ui.Container(updated_section))
         
         await msg.edit(view=updated_view)
