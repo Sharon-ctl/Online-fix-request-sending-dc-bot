@@ -106,16 +106,29 @@ class AdminCog(commands.Cog):
     @is_owner()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ping_cmd(self, ctx: commands.Context):
-        """Check the bot's WebSocket latency (Owner only)."""
-        latency = round(self.bot.latency * 1000)
-        view = ui.LayoutView(timeout=None)
-        thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
-        content = f"### Pong! 🏓\n**WebSocket Latency:** {latency}ms"
+        """Check the bot's latency (Owner only)."""
+        import time
+        ws_latency = round(self.bot.latency * 1000)
         
-        main_section = ui.Section(ui.TextDisplay(content), accessory=ui.Thumbnail(media=thumb_url))
-        container = ui.Container(main_section)
-        view.add_item(container)
-        await ctx.send(view=view)
+        # We create a placeholder view to calculate accurate roundtrip API latency
+        view = ui.LayoutView(timeout=None)
+        content = f"### Latency Test\n**WebSocket:** {ws_latency}ms\n**API Response:** Calculating..."
+        main_section = ui.Section(ui.TextDisplay(content))
+        view.add_item(ui.Container(main_section))
+        
+        start_time = time.monotonic()
+        msg = await ctx.send(view=view)
+        end_time = time.monotonic()
+        
+        api_latency = round((end_time - start_time) * 1000)
+        
+        # Update view with accurate results
+        updated_view = ui.LayoutView(timeout=None)
+        updated_content = f"### Latency\n**WebSocket:** {ws_latency}ms\n**API Response:** {api_latency}ms"
+        updated_section = ui.Section(ui.TextDisplay(updated_content))
+        updated_view.add_item(ui.Container(updated_section))
+        
+        await msg.edit(view=updated_view)
 
     @test_cmd.error
     @fetch_cmd.error

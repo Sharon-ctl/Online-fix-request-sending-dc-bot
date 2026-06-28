@@ -11,39 +11,55 @@ from services.database_service import DatabaseService
 class RSSService:
     def __init__(self, db_service: DatabaseService):
         self.db_service = db_service
+        self.session = None
 
     async def initialize(self):
-        pass  # curl_cffi handles connections internally
+        # Create a single persistent session to pool connections, improving speed and stopping memory leaks
+        self.session = requests.Session(impersonate="chrome110")
+        self.session.timeout = HTTP_TIMEOUT
 
     async def close(self):
-        pass
+        if self.session:
+            self.session.close()
 
     def _sync_fetch(self, headers: dict):
-        # Synchronous fetch method using curl_cffi to impersonate Chrome
-        response = requests.get(RSS_URL, headers=headers, impersonate="chrome110", timeout=HTTP_TIMEOUT)
-        return response.status_code, response.headers, response.text
+        try:
+            response = self.session.get(RSS_URL, headers=headers)
+            return response.status_code, response.headers, response.text
+        except Exception as e:
+            raise RSSFetchError(f"HTTP Fetch failed: {str(e)}")
 
     def _sync_search(self, query: str):
-        url = "https://online-fix.me/index.php?do=search"
-        data = {
-            "do": "search",
-            "subaction": "search",
-            "story": query
-        }
-        response = requests.post(url, data=data, impersonate="chrome110", timeout=HTTP_TIMEOUT)
-        return response.status_code, response.text
+        try:
+            url = "https://online-fix.me/index.php?do=search"
+            data = {
+                "do": "search",
+                "subaction": "search",
+                "story": query
+            }
+            response = self.session.post(url, data=data)
+            return response.status_code, response.text
+        except Exception as e:
+            raise RSSFetchError(f"Search POST failed: {str(e)}")
 
     def _sync_get_homepage(self):
-        response = requests.get("https://online-fix.me/", impersonate="chrome110", timeout=HTTP_TIMEOUT)
-        return response.status_code, response.text
+        try:
+            response = self.session.get("https://online-fix.me/")
+            return response.status_code, response.text
+        except Exception as e:
+            raise RSSFetchError(f"Homepage GET failed: {str(e)}")
 
     async def get_recent_updates(self, limit: int = 50) -> List[ReleaseData]:
         from bs4 import BeautifulSoup
         from utils.parser import parse_html_article
         
-        status, content = await asyncio.to_thread(self._sync_get_homepage)
-        if status >= 400:
-            raise RSSFetchError(f"HTTP Error {status} fetching homepage")
+        try:
+            status, content = await asyncio.to_thread(self._sync_get_homepage)
+            if status >= 400:
+                raise RSSFetchError(f"HTTP Error {status} fetching homepage")
+        except Exception as e:
+            log.error(f"action=get_recent_updates_failed error={e}")
+            return []
             
         soup = BeautifulSoup(content, 'html.parser')
         articles = soup.find_all('div', class_='article')
@@ -62,8 +78,11 @@ class RSSService:
         return results
 
     def _sync_fetch_url(self, url: str):
-        response = requests.get(url, impersonate="chrome110", timeout=HTTP_TIMEOUT)
-        return response.status_code, response.text
+        try:
+            response = self.session.get(url)
+            return response.status_code, response.text
+        except Exception as e:
+            raise RSSFetchError(f"URL GET failed: {str(e)}")
 
     async def get_genre(self, genre: str, limit: int = 50) -> List[ReleaseData]:
         from bs4 import BeautifulSoup

@@ -57,17 +57,23 @@ class PaginatedReleaseView(ui.LayoutView):
         self.current_page = 0
         self.per_page = 10
         self.max_pages = max(1, (len(results) - 1) // self.per_page + 1)
+        self.translated_cache = {} # Caches translated titles by page index
         
     async def build_page(self) -> ui.Container:
         start_idx = self.current_page * self.per_page
         end_idx = start_idx + self.per_page
         page_results = self.results[start_idx:end_idx]
         
-        import asyncio
-        translated_titles = await asyncio.gather(
-            *(self.translation_service.translate_text(res.title) for res in page_results),
-            return_exceptions=True
-        )
+        # Use cached translations if we've already visited this page
+        if self.current_page in self.translated_cache:
+            translated_titles = self.translated_cache[self.current_page]
+        else:
+            import asyncio
+            translated_titles = await asyncio.gather(
+                *(self.translation_service.translate_text(res.title) for res in page_results),
+                return_exceptions=True
+            )
+            self.translated_cache[self.current_page] = translated_titles
         
         header = f"### {self.view_title}"
         if self.query:
@@ -99,6 +105,7 @@ class PaginatedReleaseView(ui.LayoutView):
             
             prev_btn = ui.Button(label="<", style=discord.ButtonStyle.secondary, disabled=self.current_page == 0)
             async def prev_callback(interaction: discord.Interaction):
+                await interaction.response.defer()
                 self.current_page -= 1
                 await self.update_message(interaction)
             prev_btn.callback = prev_callback
@@ -106,6 +113,7 @@ class PaginatedReleaseView(ui.LayoutView):
             
             next_btn = ui.Button(label=">", style=discord.ButtonStyle.secondary, disabled=self.current_page == self.max_pages - 1)
             async def next_callback(interaction: discord.Interaction):
+                await interaction.response.defer()
                 self.current_page += 1
                 await self.update_message(interaction)
             next_btn.callback = next_callback
@@ -117,7 +125,6 @@ class PaginatedReleaseView(ui.LayoutView):
         return container
 
     async def update_message(self, interaction: discord.Interaction):
-        await interaction.response.defer()
         self.clear_items()
         container = await self.build_page()
         self.add_item(container)
