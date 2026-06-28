@@ -110,16 +110,11 @@ class AdminCog(commands.Cog):
         import time
         ws_latency = round(self.bot.latency * 1000)
         
-        # We create a placeholder view to calculate accurate roundtrip API latency
         view = ui.LayoutView(timeout=None)
-        
-        # Discord V2 Sections strictly require a valid accessory component. 
-        # Since the user requested no logo, we pass a transparent 1x1 pixel image.
-        blank_thumb = ui.Thumbnail(media="https://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif")
-        
         content = f"### Latency Test\n**WebSocket:** {ws_latency}ms\n**API Response:** Calculating..."
-        main_section = ui.Section(ui.TextDisplay(content), accessory=blank_thumb)
-        view.add_item(ui.Container(main_section))
+        
+        # Placing TextDisplay directly in Container to avoid the Section's mandatory image requirement
+        view.add_item(ui.Container(ui.TextDisplay(content)))
         
         start_time = time.monotonic()
         msg = await ctx.send(view=view)
@@ -127,11 +122,9 @@ class AdminCog(commands.Cog):
         
         api_latency = round((end_time - start_time) * 1000)
         
-        # Update view with accurate results
         updated_view = ui.LayoutView(timeout=None)
         updated_content = f"### Latency\n**WebSocket:** {ws_latency}ms\n**API Response:** {api_latency}ms"
-        updated_section = ui.Section(ui.TextDisplay(updated_content), accessory=blank_thumb)
-        updated_view.add_item(ui.Container(updated_section))
+        updated_view.add_item(ui.Container(ui.TextDisplay(updated_content)))
         
         await msg.edit(view=updated_view)
 
