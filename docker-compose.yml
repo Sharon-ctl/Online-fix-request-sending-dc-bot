@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: onlinefix-bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./database:/app/database
+      - ./logs:/app/logs
+    # Setting timezone inside the container if needed
+    environment:
+      - TZ=UTC

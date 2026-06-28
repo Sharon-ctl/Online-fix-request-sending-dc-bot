@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Environment Variables
+.env
+
+# Bot specific data
+database/
+logs/
+
+# Testing
+translate_out.txt
+docs_dump.txt
