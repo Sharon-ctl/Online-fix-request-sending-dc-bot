@@ -33,7 +33,7 @@ class RSSService:
         response = requests.post(url, data=data, impersonate="chrome110", timeout=HTTP_TIMEOUT)
         return response.status_code, response.text
 
-    async def search_game(self, query: str) -> Optional[ReleaseData]:
+    async def search_games(self, query: str, limit: int = 5) -> List[ReleaseData]:
         from bs4 import BeautifulSoup
         from utils.parser import parse_html_article
         
@@ -49,10 +49,16 @@ class RSSService:
             if not articles:
                 articles = soup.find_all('article', class_='article')
                 
-            if not articles:
-                return None
-                
-            return parse_html_article(articles[0])
+            results = []
+            for article in articles[:limit]:
+                try:
+                    res = parse_html_article(article)
+                    if res:
+                        results.append(res)
+                except Exception as e:
+                    log.warning(f"Failed to parse search result article: {e}")
+                    
+            return results
             
         except Exception as e:
             log.warning(f"action=search_failed error={e} query={query}")
