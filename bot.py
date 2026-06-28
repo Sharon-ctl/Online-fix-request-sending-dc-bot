@@ -62,6 +62,26 @@ class OnlineFixBot(commands.Bot):
         log.info(f"action=guild_remove guild={guild.id}")
         self.db_service.remove_guild(guild.id)
 
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+
+        # Check if the bot was mentioned (and the message is just the mention)
+        if self.user.mentioned_in(message) and len(message.content.replace(f'<@{self.user.id}>', '').strip()) == 0:
+            from discord import ui
+            view = ui.LayoutView(timeout=None)
+            thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
+            
+            content = "**Games!! Bot**\nHello! I am a simple bot that tracks game releases and lets you browse our database.\n\nType `!search <game>` to find a specific game, or `!help` to see everything I can do!"
+            
+            main_section = ui.Section(ui.TextDisplay(content), accessory=ui.Thumbnail(media=thumb_url))
+            view.add_item(ui.Container(main_section))
+            
+            await message.channel.send(view=view)
+            return
+
+        await self.process_commands(message)
+
     async def close(self):
         """Graceful shutdown procedure."""
         log.info("action=bot_shutdown msg=Starting graceful shutdown")

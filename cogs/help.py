@@ -14,16 +14,18 @@ class CustomHelpCommand(commands.HelpCommand):
         view = ui.LayoutView(timeout=None)
         thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
         
-        content = "## Games!! Tracker Help\n*A Discord bot that monitors new co-op game releases, tracks trending games, and lets you browse genres, all automatically translated to English.*\n\n"
+        content = "**Games!! Tracker Help**\n*A simple bot to monitor new game releases, track trending games, and browse genres.*\n\n"
         
         for cog, cmds in mapping.items():
             filtered = await self.filter_commands(cmds, sort=True)
             if filtered:
                 cog_name = getattr(cog, "qualified_name", "No Category")
+                if cog_name == "AdminCog":
+                    continue
                 cmds_desc = "\n".join([f"`!{c.name}` - {c.short_doc}" for c in filtered])
                 content += f"**{cog_name}**\n{cmds_desc}\n\n"
                 
-        content += "*Use `!help <command>` for more info on a specific command.*"
+        content += "*Type `!help <command>` for more details.*"
         
         main_section = ui.Section(ui.TextDisplay(content), accessory=ui.Thumbnail(media=thumb_url))
         container = ui.Container(main_section)
@@ -35,7 +37,7 @@ class CustomHelpCommand(commands.HelpCommand):
         thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
         
         desc = command.help or "No description provided."
-        content = f"### Command: !{command.name}\n{desc}\n\n"
+        content = f"**Command:** `!{command.name}`\n{desc}\n\n"
         
         if command.aliases:
             aliases_str = ", ".join(command.aliases)
