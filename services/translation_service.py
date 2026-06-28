@@ -26,6 +26,10 @@ class TranslationService:
 
     async def translate_release(self, release: ReleaseData) -> ReleaseData:
         """Translates the textual fields of a release from Russian to English."""
+        if getattr(release, 'source', 'Online-Fix') == 'FitGirl':
+            log.debug(f"action=skip_translation source=FitGirl title='{release.title}'")
+            return release
+            
         log.debug(f"action=translating_release title='{release.title}'")
         
         # Translate fields concurrently if possible, or sequentially. 

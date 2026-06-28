@@ -89,7 +89,8 @@ class PaginatedReleaseView(ui.LayoutView):
         else:
             for idx, res in enumerate(page_results):
                 title = translated_titles[idx] if not isinstance(translated_titles[idx], Exception) else res.title
-                content += f"**{start_idx + idx + 1}.** [{title}]({res.link})\n"
+                source_tag = f"[{getattr(res, 'source', 'Online-Fix')}]"
+                content += f"**{start_idx + idx + 1}.** **{source_tag}** [{title}]({res.link})\n"
                 
         thumb_url = "https://cdn.discordapp.com/attachments/1402112765140799609/1520700767164698634/oflogo.gif?ex=6a422674&is=6a40d4f4&hm=612797893b90e25e5504ed65c0950eb8f8ac377d5d91c273af9cdadc8e64c484&"
         

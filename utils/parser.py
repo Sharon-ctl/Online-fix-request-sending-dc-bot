@@ -15,6 +15,7 @@ class ReleaseData:
         play_via: Optional[str] = None,
         modes: Optional[str] = None,
         categories: Optional[str] = None,
+        source: str = "Online-Fix"
     ):
         self.guid = guid
         self.title = title
@@ -25,6 +26,7 @@ class ReleaseData:
         self.play_via = play_via
         self.modes = modes
         self.categories = categories
+        self.source = source
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -36,7 +38,8 @@ class ReleaseData:
             "release_date": self.release_date,
             "play_via": self.play_via,
             "modes": self.modes,
-            "categories": self.categories
+            "categories": self.categories,
+            "source": self.source
         }
 
 def _extract_detail(soup: BeautifulSoup, label_patterns: list[str]) -> Optional[str]:
@@ -165,3 +168,86 @@ def parse_html_article(soup: BeautifulSoup) -> ReleaseData:
             raise
         raise RSSParseError(f"Failed to parse HTML article: {e}")
 
+def parse_fitgirl_rss_entry(entry: Dict[str, Any]) -> ReleaseData:
+    """Parses a single feedparser entry from FitGirl into a ReleaseData object."""
+    try:
+        guid = entry.get("id", entry.get("guid", entry.get("link")))
+        title = entry.get("title", "Unknown Title")
+        link = entry.get("link", "")
+        published = entry.get("published", entry.get("updated", "Unknown Date"))
+        description = entry.get("description", entry.get("summary", ""))
+
+        if not guid:
+            raise RSSParseError("Entry missing GUID/ID")
+
+        # Parse HTML description to find image if it exists
+        soup = BeautifulSoup(description, "html.parser")
+        image_url = None
+        img_tag = soup.find("img")
+        if img_tag and img_tag.get("src"):
+            image_url = img_tag["src"]
+
+        return ReleaseData(
+            guid=guid,
+            title=title,
+            link=link,
+            published=published,
+            image_url=image_url,
+            release_date=None,
+            play_via=None,
+            modes=None,
+            categories=None,
+            source="FitGirl"
+        )
+    except Exception as e:
+        raise RSSParseError(f"Failed to parse FitGirl RSS entry: {e}")
+
+def parse_fitgirl_article(soup: BeautifulSoup) -> ReleaseData:
+    """Parses a single WordPress HTML article block from FitGirl into a ReleaseData object."""
+    try:
+        title_tag = soup.find('h1', class_='entry-title')
+        if not title_tag:
+            title_tag = soup.find('h2', class_='entry-title')
+            
+        link_tag = title_tag.find('a') if title_tag else None
+        
+        if not title_tag or not link_tag:
+            # Fallback if structure is slightly different
+            link_tag = soup.find('a', rel='bookmark')
+            title = link_tag.text.strip() if link_tag else "Unknown Title"
+        else:
+            title = link_tag.text.strip()
+            
+        link = link_tag['href'] if link_tag and 'href' in link_tag.attrs else ""
+        guid = link
+
+        # Extract published date from time tag
+        published = "Unknown Date"
+        time_tag = soup.find('time', class_='entry-date')
+        if time_tag and 'datetime' in time_tag.attrs:
+            published = time_tag['datetime']
+        elif time_tag:
+            published = time_tag.text.strip()
+
+        image_url = None
+        img_tag = soup.find('img')
+        if img_tag and 'src' in img_tag.attrs:
+            image_url = img_tag['src']
+
+        if not guid:
+            raise RSSParseError("FitGirl Article missing GUID/Link")
+
+        return ReleaseData(
+            guid=guid,
+            title=title,
+            link=link,
+            published=published,
+            image_url=image_url,
+            release_date=None,
+            play_via=None,
+            modes=None,
+            categories=None,
+            source="FitGirl"
+        )
+    except Exception as e:
+        raise RSSParseError(f"Failed to parse FitGirl HTML article: {e}")
