@@ -85,3 +85,7 @@ Enable and start:
 sudo systemctl enable onlinefix
 sudo systemctl start onlinefix
 ```
+
+## License
+
+Released under the MIT License. See [LICENSE](LICENSE).
