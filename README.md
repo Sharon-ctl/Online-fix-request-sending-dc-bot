@@ -3,7 +3,7 @@
 A production-grade Python Discord bot that monitors the `https://online-fix.me/rss.xml` feed and automatically posts newly released games into configured Discord channels.
 
 ## Features
-- **Auto-Translations**: Real-time Russian-to-English translation using `googletrans` API.
+- **Auto-Translations**: Real-time Russian-to-English translation using `deep-translator` (Google Translate).
 - **Cloudflare Bypass**: Embedded `curl_cffi` to evade advanced Web Application Firewalls natively.
 - **Interactive UI**: Gorgeous layout built on native Discord Components V2 framework.
 - **Smart Pagination**: Lazily loads and translates pages for commands with massive outputs to optimize performance and prevent rate limiting.
